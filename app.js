@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS
 app.use(cors({
-  origin: "https://techno-gears-frontend-ndxxsak3f-abhijitdevghares-projects.vercel.app/",
+  origin: "https://techno-gears-frontend.vercel.app/",
   credentials: true,
 }));
 
