@@ -10,34 +10,26 @@ const app = express();
 // -------------------------------------------
 // ✔ CORS MUST BE FIRST
 // -------------------------------------------
-app.use(
-  cors({
-    origin: "https://techno-gears-frontend.vercel.app",
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: "https://techno-gears-frontend.vercel.app",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-// ✔ Preflight
-app.options(
-  "*",
-  cors({
-    origin: "https://techno-gears-frontend.vercel.app",
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // -------------------------------------------
-// OTHER MIDDLEWARE AFTER CORS
+// OTHER MIDDLEWARE
 // -------------------------------------------
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/Images', express.static(path.join(__dirname, "Images")));
-
+app.use("/Images", express.static(path.join(__dirname, "Images")));
 app.use(morgan("dev"));
 
-// DB
 connectToDb();
 
 // ROUTES
