@@ -2,40 +2,52 @@ require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-const cors = require("cors");
 const path = require("path");
+const cors = require("cors");
 
 const app = express();
 
 // -------------------------------------------
-// ✔ CORS MUST BE FIRST
+// OVERRIDE VERCEL HEADERS (IMPORTANT)
 // -------------------------------------------
-const corsOptions = {
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://techno-gears-frontend.vercel.app");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// -------------------------------------------
+// EXPRESS CORS (SECONDARY)
+// -------------------------------------------
+app.use(cors({
   origin: "https://techno-gears-frontend.vercel.app",
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+}));
 
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
-// -------------------------------------------
-// OTHER MIDDLEWARE
-// -------------------------------------------
+// BODY PARSERS
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/Images", express.static(path.join(__dirname, "Images")));
-app.use(morgan("dev"));
+// STATIC FILES
+app.use('/Images', express.static(path.join(__dirname, "Images")));
 
+app.use(morgan('dev'));
+
+const connectToDb = require('./config/configDb.js');
 connectToDb();
 
-// ROUTES
-app.use("/api/v1", routes);
+const routes = require("./routers/v1/");
+app.use('/api/v1', routes);
 
-// ERROR HANDLER
+const errorMiddleware = require("./middleware/error.middleware.js");
 app.use(errorMiddleware);
 
 module.exports = app;
