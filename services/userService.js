@@ -83,12 +83,12 @@ class UserService {
     const token = await user.jwtToken();
     user.password = undefined;
 
-    const cookieOptions = {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax"
-    };
+      const cookieOptions = {
+  httpOnly: true,
+  secure: true,        // Vercel is always HTTPS
+  sameSite: "None",    // Required for cross-site cookies
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
     return { user, token, cookieOptions };
   }
@@ -115,13 +115,13 @@ class UserService {
     const token = await user.jwtToken();
     user.password = undefined;
 
-    const cookieOptions = {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      // maxAge: 60 * 1000, // 1 minute in milliseconds
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax"
-    };
+   const cookieOptions = {
+  httpOnly: true,
+  secure: true,        // Vercel is always HTTPS
+  sameSite: "None",    // Required for cross-site cookies
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
 
     return { user, token, cookieOptions };
   }

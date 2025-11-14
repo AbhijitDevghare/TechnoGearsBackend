@@ -26,7 +26,7 @@ class UserController {
 
       console.log(user,token,cookieOptions)
       res.cookie("token", token, cookieOptions);
-      res.status(200).json({ success: true, message: "Login Successful", user ,token,cookieOptions});
+      res.status(200).json({ success: true, message: "Login Successful", user});
     } catch (err) {
       next(err);
     }
