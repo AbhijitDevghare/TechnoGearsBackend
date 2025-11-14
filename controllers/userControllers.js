@@ -24,8 +24,9 @@ class UserController {
     try {
       const {user,token,cookieOptions} = await userService.loginUser(req.body.identifier, req.body.password);
 
+      console.log(user,token,cookieOptions)
       res.cookie("token", token, cookieOptions);
-      res.status(200).json({ success: true, message: "Login Successful", user });
+      res.status(200).json({ success: true, message: "Login Successful", user ,token,cookieOptions});
     } catch (err) {
       next(err);
     }
