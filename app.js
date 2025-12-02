@@ -9,11 +9,11 @@ const app = express();
 
 // -------------------------------------------
 // EXPRESS CORS: Single, recommended configuration.
-// This handles all necessary headers and preflight (OPTIONS) requests.
+// FIX: Corrected the origin URL to include the hyphen in 'gears-frontend'.
 // -------------------------------------------
 app.use(
   cors({
-    origin: "https://techno-gearsfrontend.vercel.app",
+    origin: "https://techno-gears-frontend.vercel.app", // <--- CORRECTED HYPHEN HERE
     credentials: true, // Allows cookies and authorization headers to be sent
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Specify allowed methods
     preflightContinue: false,
