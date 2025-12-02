@@ -8,10 +8,10 @@ const cors = require("cors");
 const app = express();
 
 // -------------------------------------------
-// OVERRIDE VERCEL HEADERS (IMPORTANT)
+// FIXED: OVERRIDE VERCEL HEADERS
 // -------------------------------------------
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://techno-gears-frontend.vercel.app");
+  res.setHeader("Access-Control-Allow-Origin", "https://techno-gearsfrontend.vercel.app");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
@@ -24,12 +24,14 @@ app.use((req, res, next) => {
 });
 
 // -------------------------------------------
-// EXPRESS CORS (SECONDARY)
+// EXPRESS CORS
 // -------------------------------------------
-app.use(cors({
-  origin: "https://techno-gears-frontend.vercel.app",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "https://techno-gearsfrontend.vercel.app",
+    credentials: true,
+  })
+);
 
 // BODY PARSERS
 app.use(express.json());
@@ -37,16 +39,19 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 // STATIC FILES
-app.use('/Images', express.static(path.join(__dirname, "Images")));
+app.use("/Images", express.static(path.join(__dirname, "Images")));
 
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
-const connectToDb = require('./config/configDb.js');
+// DB CONNECTION
+const connectToDb = require("./config/configDb.js");
 connectToDb();
 
+// ROUTES
 const routes = require("./routers/v1/");
-app.use('/api/v1', routes);
+app.use("/api/v1", routes);
 
+// ERROR HANDLER
 const errorMiddleware = require("./middleware/error.middleware.js");
 app.use(errorMiddleware);
 
