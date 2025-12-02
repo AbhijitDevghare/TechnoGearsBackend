@@ -8,28 +8,16 @@ const cors = require("cors");
 const app = express();
 
 // -------------------------------------------
-// FIXED: OVERRIDE VERCEL HEADERS
-// -------------------------------------------
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://techno-gearsfrontend.vercel.app");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
-
-// -------------------------------------------
-// EXPRESS CORS
+// EXPRESS CORS: Single, recommended configuration.
+// This handles all necessary headers and preflight (OPTIONS) requests.
 // -------------------------------------------
 app.use(
   cors({
     origin: "https://techno-gearsfrontend.vercel.app",
-    credentials: true,
+    credentials: true, // Allows cookies and authorization headers to be sent
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Specify allowed methods
+    preflightContinue: false,
+    optionsSuccessStatus: 204 // Use 204 No Content for successful OPTIONS response
   })
 );
 
@@ -39,8 +27,10 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 // STATIC FILES
+// Serves files from the 'Images' directory under the /Images route
 app.use("/Images", express.static(path.join(__dirname, "Images")));
 
+// Request Logger
 app.use(morgan("dev"));
 
 // DB CONNECTION
