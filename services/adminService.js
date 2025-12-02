@@ -41,12 +41,14 @@ class AdminService {
     user.password = undefined;
 
     // Set cookie options for session
-    const cookieOptions = {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax'
-    };
+const cookieOptions = {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    httpOnly: true,
+    // CRUCIAL: Must be true for SameSite=None to work
+    secure: process.env.NODE_ENV === 'production', 
+    // CRUCIAL: Allows the cookie to be sent in cross-site requests
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
+};
 
     return { user, token, cookieOptions };
   }
