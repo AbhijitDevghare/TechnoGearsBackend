@@ -13,7 +13,7 @@ const app = express();
 // -------------------------------------------
 app.use(
   cors({
-    origin: ["https://techno-gears-frontend.vercel.app","http://localhost:5173/"] ,// <--- CORRECTED HYPHEN HERE
+    origin: ["https://techno-gears-frontend.vercel.app","http://localhost:5173"] ,// <--- CORRECTED HYPHEN HERE
     credentials: true, // Allows cookies and authorization headers to be sent
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Specify allowed methods
     preflightContinue: false,
