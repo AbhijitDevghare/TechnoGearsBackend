@@ -41,16 +41,24 @@ class ProductService {
     return product;
   }
 
-  async getProducts(filter, pageNumber) {
-    const options = {
-      page: pageNumber,
-      limit: 50,
-      sortBy: "createdAt",
-      order: "desc"
-    };
+async getProducts(filter = {}, pageNumber = 1) {
+  const options = {
+    page: pageNumber,
+    limit: 50,
+    sortBy: filter.sortBy || "createdAt",
+    order: filter.order || "desc"
+  };
 
-    return await productRepository.getProducts(filter, options);
-  }
+  const query = {};
+
+  if (filter.category) query.category = filter.category;
+  if (filter.brand) query.brand = filter.brand;
+  if (filter.minRating)
+    query["ratings.average"] = { $gte: filter.minRating };
+
+  return productRepository.getProducts(query, options);
+}
+
 
   
   async getLowStockProducts()
