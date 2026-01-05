@@ -35,10 +35,10 @@ class UserController {
   // Logout Controller
   static async logout(req, res, next) {
     try {
-      const cookieOptions = {
-        expires: new Date(),
-        httpOnly: true
-      };
+      // const cookieOptions = {
+      //   expires: new Date(),
+      //   httpOnly: true
+      // };
 
       res.cookie("token", null, cookieOptions);
       res.status(200).json({
