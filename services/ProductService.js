@@ -46,15 +46,17 @@ async getProducts(filter = {}, pageNumber = 1) {
     page: pageNumber,
     limit: 50,
     sortBy: filter.sortBy || "createdAt",
-    order: filter.order || "desc"
+    order: filter.order || "desc",
   };
 
   const query = {};
 
   if (filter.category) query.category = filter.category;
   if (filter.brand) query.brand = filter.brand;
-  if (filter.minRating)
-    query["ratings.average"] = { $gte: filter.minRating };
+
+  if (filter.minRating !== undefined) {
+    query["ratings.average"] = { $gte: Number(filter.minRating) };
+  }
 
   return productRepository.getProducts(query, options);
 }
