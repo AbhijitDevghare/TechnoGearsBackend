@@ -33,22 +33,24 @@ class UserController {
   }
 
   // Logout Controller
-  static async logout(req, res, next) {
-    try {
-      // const cookieOptions = {
-      //   expires: new Date(),
-      //   httpOnly: true
-      // };
+static async logout(req, res, next) {
+  try {
+    res.cookie("token", "", {
+      httpOnly: true,
+      secure: true,        // MUST match login
+      sameSite: "none",    // MUST match login
+      expires: new Date(0) // Force expiry
+    });
 
-      res.cookie("token", null, cookieOptions);
-      res.status(200).json({
-        success: true,
-        message: "Logged out successfully..."
-      });
-    } catch (error) {
-      next(error);
-    }
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    next(error);
   }
+}
+
 
   // Get User Controller
   static async getuser(req, res, next) {
