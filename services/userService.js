@@ -122,9 +122,11 @@ const cookieOptions = {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
     // CRUCIAL: Must be true for SameSite=None to work
-    secure: process.env.NODE_ENV === 'production', 
-    // CRUCIAL: Allows the cookie to be sent in cross-site requests
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
+    // secure: process.env.NODE_ENV === 'production', 
+    // // CRUCIAL: Allows the cookie to be sent in cross-site requests
+    // sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax' 
+    secure: true,
+    sameSite: "none"
 };
 
     return { user, token, cookieOptions };

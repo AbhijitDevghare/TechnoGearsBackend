@@ -10,7 +10,7 @@ class ProductService {
     }
 
     let uploadedImages = [];
-
+    
     // Upload all provided product images
     if (files && files.length > 0) {
       const folderName = "TechnoGears/products";
