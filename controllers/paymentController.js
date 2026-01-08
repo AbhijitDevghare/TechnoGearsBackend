@@ -1,124 +1,146 @@
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const Order = require('../models/OrderSchema'); // Your order schema
-const Payment = require('../models/PaymentSchema'); // Your payment schema
-const mongoose = require('mongoose');
-// const { CartRepository } = require('../repositories');
-const repositories = require('../repositories');
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
+const mongoose = require("mongoose");
+
+const Order = require("../models/OrderSchema");
+const Payment = require("../models/PaymentSchema");
+const User = require("../models/UserSchema");
+
+const repositories = require("../repositories");
 const CartRepository = repositories.CartRepository || repositories;
-const AppError = require('../utils/error.utils'); // Make sure this path is correct and exports AppError
-const sendEmail = require('../utils/sendEmail');
-const User = require('../models/UserSchema');
-const sendSms = require('../utils/sendSms');
+
+const AppError = require("../utils/error.utils");
+const sendEmail = require("../utils/sendEmail");
+const sendSms = require("../utils/sendSms");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+/* =========================
+   CREATE RAZORPAY ORDER
+========================= */
 exports.createRazorpayOrder = async (req, res, next) => {
-  const { amount } = req.body;
-
-  const options = {
-    amount: amount * 100, // in paise
-    currency: "INR",
-    receipt: `rcpt_${Date.now()}`
-  };
-
   try {
+    const { amount } = req.body;
+
+    if (!amount) {
+      return next(new AppError("Amount is required", 400));
+    }
+
+    // amount comes in RUPEES → convert to PAISE (INTEGER)
+    const amountInPaise = Math.round(Number(amount) * 100);
+
+    if (!Number.isInteger(amountInPaise)) {
+      return next(new AppError("Amount must be an integer in paise", 400));
+    }
+
+    const options = {
+      amount: amountInPaise, // ✅ INTEGER ONLY
+      currency: "INR",
+      receipt: `rcpt_${Date.now()}`,
+    };
+
+    console.log("RAZORPAY ORDER OPTIONS:", options);
+
     const order = await razorpay.orders.create(options);
-    res.json({ success: true, order });
+
+    return res.status(200).json({
+      success: true,
+      order,
+    });
   } catch (error) {
-    return next(new AppError(`Error: ${error.message}`, error.code || 500));
+    console.error("CREATE ORDER ERROR:", error);
+    return next(new AppError(error.message || "Razorpay order failed", 500));
   }
 };
 
+/* =========================
+   VERIFY PAYMENT & SAVE
+========================= */
 exports.verifyAndSavePayment = async (req, res, next) => {
-  const {
-    provider_order_id,
-    transaction_id,
-    payment_signature,
-    cartItems,
-    userId,
-    totalAmount,
-    shippingAddress
-  } = req.body;
+  try {
+    const {
+      provider_order_id,
+      transaction_id,
+      payment_signature,
+      cartItems,
+      userId,
+      totalAmount, // IN PAISE
+      shippingAddress,
+    } = req.body;
 
-  const body = provider_order_id + "|" + transaction_id;
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(body.toString())
-    .digest("hex");
+    const body = `${provider_order_id}|${transaction_id}`;
 
-  const objectUserId = new mongoose.Types.ObjectId(userId);
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
 
-  if (expectedSignature === payment_signature) {
-    try {
-      const payment = await Payment.create({
-        provider_order_id,
-        transaction_id,
-        payment_signature,
-        amount: totalAmount,
-        user: objectUserId
-      });
-
-      const order = await Order.create({
-        user: objectUserId,
-        items: cartItems,
-        totalAmount,
-        paymentId: payment._id,
-        status: 'Paid',
-        shippingAddress: shippingAddress,
-        shippingStatus: "Pending"
-      });
-
-      const user = await User.findById(objectUserId).select('email').select('phoneNumber');
-
-      const amountInRupees = totalAmount / 100;
-
-      const textMessage = `Order ${order._id} confirmed! ₹${amountInRupees.toFixed(2)} for ${cartItems.length} items. Shipping to ${shippingAddress.city}-${shippingAddress.pincode}. Thanks!`;
-
-        const htmlMessage = `
-          <p>Hi there,</p>
-          <p>Thank you for your purchase! 🎉</p>
-          <p>We have received your payment successfully. Your order has been confirmed and is now being processed.</p>
-          <h3>📦 Order Details:</h3>
-          <ul>
-            <li><strong>Order ID:</strong> ${order._id}</li>
-            <li><strong>Total Amount:</strong> ₹${amountInRupees.toFixed(2)}</li>
-            <li><strong>Items:</strong> ${cartItems.length}</li>
-            <li><strong>Shipping Address:</strong> 
-              ${shippingAddress.name}, ${shippingAddress.address}, ${shippingAddress.city} - ${shippingAddress.pincode}
-            </li>
-          </ul>
-          <p>You’ll receive another email once your order has been shipped.</p>
-          <p>Thank you for shopping with us!<br/><strong>Best Regards,TechnoGears</strong></p>
-        `;
-
-
-
-      if (order) {
-        // Send confirmation email to user
-        await sendEmail({
-          to: user.email,
-          subject: "Order Confirmation",
-          text: htmlMessage
-        });
-
-        console.log(user)
-
-        await sendSms(user.phoneNumber, textMessage);
-        await CartRepository.clearCart(objectUserId);
-
-  
-      }
-
-      res.status(200).json({ success: true, message: "Payment verified and order placed successfully." });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ success: false, message: "Something went wrong while saving payment and order." });
+    if (expectedSignature !== payment_signature) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment verification failed" });
     }
-  } else {
-    return res.status(400).json({ success: false, message: "Payment verification failed." });
+
+    const objectUserId = new mongoose.Types.ObjectId(userId);
+
+    const payment = await Payment.create({
+      provider_order_id,
+      transaction_id,
+      payment_signature,
+      amount: Number(totalAmount), // ✅ STORE IN PAISE
+      user: objectUserId,
+    });
+
+    const order = await Order.create({
+      user: objectUserId,
+      items: cartItems,
+      totalAmount: Number(totalAmount), // PAISE
+      paymentId: payment._id,
+      status: "Paid",
+      shippingAddress,
+      shippingStatus: "Pending",
+    });
+
+    const user = await User.findById(objectUserId).select("email phoneNumber");
+
+    const amountInRupees = (Number(totalAmount) / 100).toFixed(2);
+
+    const smsText = `Order ${order._id} confirmed! ₹${amountInRupees} for ${cartItems.length} items. Shipping to ${shippingAddress.city}-${shippingAddress.pincode}.`;
+
+    const emailHtml = `
+      <p>Hi,</p>
+      <p>Your payment was successful 🎉</p>
+      <h3>Order Details</h3>
+      <ul>
+        <li><b>Order ID:</b> ${order._id}</li>
+        <li><b>Total:</b> ₹${amountInRupees}</li>
+        <li><b>Items:</b> ${cartItems.length}</li>
+        <li><b>Address:</b> ${shippingAddress.address}, ${shippingAddress.city} - ${shippingAddress.pincode}</li>
+      </ul>
+      <p>Thanks for shopping with us.</p>
+    `;
+
+    // await sendEmail({
+    //   to: user.email,
+    //   subject: "Order Confirmation",
+    //   text: emailHtml,
+    // });
+
+    // await sendSms(user.phoneNumber, smsText);
+
+    await CartRepository.clearCart(objectUserId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified and order placed successfully",
+    });
+  } catch (error) {
+    console.error("VERIFY PAYMENT ERROR:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Order processing failed" });
   }
 };
